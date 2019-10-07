@@ -2163,16 +2163,34 @@ class SemanticAnalyzer(NodeVisitor[None],
                                 explicit_type=explicit,
                                 is_final=s.is_final_def)
 
-    def apply_dynamic_class_hook(self, s: AssignmentStmt) -> None:
-        if len(s.lvalues) > 1:
+    def apply_dynamic_class_hook(self, stm: AssignmentStmt) -> None:
+        if len(stm.lvalues) > 1:
             return
-        lval = s.lvalues[0]
-        if not isinstance(lval, NameExpr) or not isinstance(s.rvalue, CallExpr):
+        lval = stm.lvalues[0]
+        if not isinstance(lval, NameExpr) or not isinstance(stm.rvalue, CallExpr):
             return
-        call = s.rvalue
+        call = stm.rvalue
         if not isinstance(call.callee, RefExpr):
             return
-        fname = call.callee.fullname
+        # This is where it's failing: `call.callee` has `name`, but not `fullname`. Is this a typed-ast thing, or a mypy thing?
+        if isinstance(call.callee, MemberExpr):
+            c = call.callee
+            names = [] 
+            # Lifted from mypy/exprtotype:expr_to_unanalyzed_type  LL:71-83
+            # Go through the dotted member expr chain to get the full arg
+            # constructor name to look up
+            while True:
+                if isinstance(c, NameExpr):
+                    names.append(c.fullname)
+                    break
+                elif isinstance(c, MemberExpr):
+                    names.append(c.name)
+                    c = c.expr.callee
+                else:
+                    raise TypeTranslationError()
+            fname = '.'.join(reversed(names))
+        else:
+            fname = call.callee.fullname
         if fname:
             hook = self.plugin.get_dynamic_class_hook(fname)
             if hook:
