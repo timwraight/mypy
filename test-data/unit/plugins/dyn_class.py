@@ -8,7 +8,7 @@ DECL_BASES = set()
 
 class DynPlugin(Plugin):
     def get_dynamic_class_hook(self, fullname):
-        if fullname == 'mod.declarative_base':
+        if fullname in ('mod.declarative_base', 'mod.SomeClass.create_some_other_class'):
             return add_info_hook
         return None
 

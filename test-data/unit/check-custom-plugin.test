@@ -489,6 +489,22 @@ class Instr(Generic[T]): ...
 \[mypy]
 plugins=<ROOT>/test-data/unit/plugins/dyn_class.py
 
+[case testDynamicClassPluginFromMethod]
+# flags: --config-file tmp/mypy.ini
+from mod import SomeClass
+
+MyDynamicClass = SomeClass().create_some_other_class() 
+
+x: MyDynamicClass
+
+reveal_type(x)  # N: Revealed type is '__main__.MyDynamicClass'
+[file mod.py]
+class SomeClass:
+    def create_some_other_class(self): ...
+
+[file mypy.ini]
+\[mypy]
+plugins=<ROOT>/test-data/unit/plugins/dyn_class.py
 [case testDynamicClassPluginNegatives]
 # flags: --config-file tmp/mypy.ini
 from mod import declarative_base, Column, Instr, non_declarative_base
